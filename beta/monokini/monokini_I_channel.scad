@@ -95,7 +95,7 @@ Nudge = 0.01; //nudge the profile to avoid z-fighting
 snapWallThickness = 2;
 gripSize = 15;
 
-Suppress_List = str_split(Suppress_Connectors, ",");
+Suppress_List = str_split(upcase(Suppress_Connectors), ",");
 //Convert the string to a list of strings. This is used to determine if the connector should be suppressed or not.
 
 ///*[Visual Options]*/
