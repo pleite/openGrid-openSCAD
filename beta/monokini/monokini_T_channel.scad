@@ -113,13 +113,21 @@ color_this(Global_Color)
   monokiniChannel(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0)
 
   if (Cord_Side_Cutouts != "None" && Number_of_Cord_Cutouts > 0) {
-                tag("remove") attach(CENTER) up(snapWallThickness) fwd(Shift_Cutouts_Forward_or_Back) {
+    /*
+                translate(v = [internalWidth/2+cordCutoutLateralOffset,internalDepth/2+cordCutoutDepthOffset,-1]) {
+                    union(){
+                        cylinder(h = baseThickness + frontLowerCapture + 2, r = cordCutoutDiameter/2);
+                        translate(v = [-cordCutoutDiameter/2,0,0]) cube([cordCutoutDiameter,internalWidth/2+wallThickness+1,baseThickness + frontLowerCapture + 2]);
+                    }
+                }
+                */
+                tag("remove") color_this(Global_Color) attach(CENTER) up(snapWallThickness) fwd(Shift_Cutouts_Forward_or_Back) {
                     ycopies(n=Number_of_Cord_Cutouts, spacing=Distance_Between_Cutouts) {
                         left(Cord_Side_Cutouts == "Right Side" ? channelWidth/2 : 0)
                         left(Cord_Side_Cutouts == "Left Side" ? -channelWidth/2 : 0)
                             // cuboid([Cord_Side_Cutouts == "Both Sides" ? channelWidth + 5 : channelWidth/2, Cord_Cutout_Width, Channel_Total_Height-snapWallThickness], chamfer = 2, edges=[BOT+FWD, BOT+BACK], orient=TOP, anchor=BOTTOM);
-                            up(snapWallThickness) cylinder(h = Cord_Side_Cutouts == "Both Sides" ? channelWidth + 5 : channelWidth/2, r = Cord_Cutout_Width/2, orient=LEFT, anchor=LEFT, $fn=50)
-                            attach(RIGHT,BOT, overlap=Cord_Cutout_Width/2) cube([Cord_Side_Cutouts == "Both Sides" ? channelWidth + 5 : channelWidth/2, Cord_Cutout_Width, Channel_Total_Height-snapWallThickness-Cord_Cutout_Width/2], spin=90);
+                            up(snapWallThickness) color_this(Global_Color) cylinder(h = Cord_Side_Cutouts == "Both Sides" ? channelWidth + 5 : channelWidth/2, r = Cord_Cutout_Width/2, orient=LEFT, anchor=LEFT, $fn=50)
+                            attach(RIGHT,BOT, overlap=Cord_Cutout_Width/2) color_this(Global_Color) cube([Cord_Side_Cutouts == "Both Sides" ? channelWidth + 5 : channelWidth/2, Cord_Cutout_Width, Channel_Total_Height-snapWallThickness-Cord_Cutout_Width/2], spin=90);
                     }
                 }
 
@@ -127,6 +135,8 @@ color_this(Global_Color)
             
  if(Add_Label) tag("remove") recolor(Text_Color)
     right(Text_x_coordinate) text3d(Text, size = Text_size, h=Text_Depth > 0.05 ? Nudge+Text_Depth : 0.05, font = surname_font, atype="ycenter", anchor=CENTER, spin=-90, orient=BOT);
+if(Add_Label) tag("keep") recolor(Text_Color)
+    right(Text_x_coordinate) text3d(Text, size = Text_size, h=Text_Depth > 0.05 ? Text_Depth : 0.05, font = surname_font, atype="ycenter", anchor=CENTER, spin=-90, orient=BOT);
 }
 
 right(lengthMM2/2+curveWidth/2) color_this(Global_Color) 
