@@ -40,10 +40,18 @@ include <BOSL2/threading.scad>
 Channel_Width_in_Units = 1;  // Ensure this is an integer
 //Height (Z axis) including connector (in mm)
 Channel_Total_Height = 22; //[22:6:72]
-//Number of grids extending along the Y axis from the corner grid in units (default unit is 28mm)
-L_Channel_Length_in_Units_Y_Axis = 1;
-//Number of grids extending along the X axis from the corner grid in units (default unit is 28mm)
-L_Channel_Length_in_Units_X_Axis = 1;
+//Number of grids extending along the Y axis from the corner grid in units to the bottom (default unit is 28mm)
+X_Channel_Length_in_Units_Y_Axis_Bottom = 1;
+//Number of grids extending along the Y axis from the corner grid in units to the top (default unit is 28mm)
+X_Channel_Length_in_Units_Y_Axis_Top = 1;
+//Number of grids extending along the X axis from the corner grid in units to the left (default unit is 28mm)
+X_Channel_Length_in_Units_X_Axis_Left = 1;
+//Number of grids extending along the X axis from the corner grid in units to the right (default unit is 28mm)
+X_Channel_Length_in_Units_X_Axis_Right = 1;
+//Grid units to move over (X axis)
+Units_Over = 2; //[-10:1:10]
+//Grid units to move up (Y axis)
+Units_Up = 2; //[1:1:10]
 
 /*[Cord Cutouts]*/
 Number_of_Cord_Cutouts = 0;
@@ -86,8 +94,10 @@ Grid_Size = 28;
 channelWidthSeparation = 0.8; //distance between the two channels in the monokini profile
 channelWidth = (Grid_Size-channelWidthSeparation*2) + (Channel_Width_in_Units-1) * Grid_Size;
 curveWidth = Channel_Width_in_Units * Grid_Size;
-lengthMM = L_Channel_Length_in_Units_Y_Axis * Grid_Size;
-lengthMM2 = L_Channel_Length_in_Units_X_Axis * Grid_Size;
+lengthMM = X_Channel_Length_in_Units_Y_Axis_Bottom * Grid_Size;
+lengthMM2 = X_Channel_Length_in_Units_X_Axis_Right * Grid_Size;
+lengthMM3 = X_Channel_Length_in_Units_X_Axis_Left * Grid_Size;
+lengthMM4 = X_Channel_Length_in_Units_Y_Axis_Top * Grid_Size;
 baseHeight = 3.40;
 topHeight = 18.60;
 interlockOverlap = 3.40; //distance that the top and base overlap each other
@@ -107,6 +117,21 @@ Debug_Show_Grid = false;
 Show_Attached = false;
 
 
+//BEGIN BEZ ATTEMPT
+dx = Units_Over * curveWidth;
+dy = Units_Up * curveWidth;
+
+//Approach 2
+bez = flatten([
+    bez_begin([0,-lengthMM-curveWidth/2], BACK, curveWidth),
+    bez_tang([0,0], BACK, curveWidth),
+    bez_tang([dx, dy], BACK, curveWidth),
+    bez_end([dx, dy+curveWidth], FWD, curveWidth)
+]);
+
+t = bezpath_curve(bez);
+
+
 //module mw_plate_1 {
 union() {
 fwd(lengthMM/2+curveWidth/2)
@@ -115,15 +140,7 @@ color_this(Global_Color)
   monokiniChannel(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0, suppress = Suppress_List[0])
 
   if (Cord_Side_Cutouts != "None" && Number_of_Cord_Cutouts > 0) {
-    /*
-                translate(v = [internalWidth/2+cordCutoutLateralOffset,internalDepth/2+cordCutoutDepthOffset,-1]) {
-                    union(){
-                        cylinder(h = baseThickness + frontLowerCapture + 2, r = cordCutoutDiameter/2);
-                        translate(v = [-cordCutoutDiameter/2,0,0]) cube([cordCutoutDiameter,internalWidth/2+wallThickness+1,baseThickness + frontLowerCapture + 2]);
-                    }
-                }
-                */
-                tag("remove") color_this(Global_Color) attach(CENTER) up(snapWallThickness) fwd(Shift_Cutouts_Forward_or_Back) {
+                tag("remove") attach(CENTER) up(snapWallThickness) fwd(Shift_Cutouts_Forward_or_Back) {
                     ycopies(n=Number_of_Cord_Cutouts, spacing=Distance_Between_Cutouts) {
                         left(Cord_Side_Cutouts == "Right Side" ? channelWidth/2 : 0)
                         left(Cord_Side_Cutouts == "Left Side" ? -channelWidth/2 : 0)
@@ -141,11 +158,72 @@ if(Add_Label) tag("keep") recolor(Text_Color)
     right(Text_x_coordinate) text3d(Text, size = Text_size, h=Text_Depth > 0.05 ? Text_Depth : 0.05, font = surname_font, atype="ycenter", anchor=CENTER, spin=-90, orient=BOT);
 }
 
+/*, suppress = Suppress_List[1]
 right(lengthMM2/2+curveWidth/2) color_this(Global_Color) 
   monokiniChannel(lengthMM = lengthMM2, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 90, suppress = Suppress_List[1]);
 
+left(lengthMM3/2+curveWidth/2) color_this(Global_Color) 
+  monokiniChannel(lengthMM = lengthMM3, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = -90);
+*/
+
+left(-dx)
+back(lengthMM2/2+dy)
 color_this(Global_Color) 
-monokiniChannelCurve(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height);
+  monokiniChannel(lengthMM = lengthMM2, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0, suppress = Suppress_List[1]);
+
+/*
+right(curveWidth)
+back(lengthMM3/2+curveWidth/2)
+color_this(Global_Color) 
+  monokiniChannel(lengthMM = lengthMM3, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0, suppress = Suppress_List[2]);
+
+
+back(lengthMM4/2+curveWidth/2)
+color_this(Global_Color) 
+  monokiniChannel(lengthMM = lengthMM4, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0, suppress = Suppress_List[3]);
+*/
+
+color_this(Global_Color)
+monokiniChannelPath(path = t, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0);
+
+/*
+color_this(Global_Color)
+        xflip_copy()
+        half_of(FRONT+LEFT)     
+        front_half(y=Nudge) right_half(x=-Nudge)
+        monokiniChannelCurve(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height);
+
+        color_this(Global_Color)
+        xflip_copy()
+        xflip_copy(x=curveWidth/2)
+        yflip()
+        front_half(y=Nudge) right_half(x=-Nudge)
+        monokiniChannelCurve(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height);
+
+        xflip_copy()
+        color_this("red")
+        zrot(-45,cp=[curveWidth/2,-channelWidth/2,0])
+        back(sqrt(2*curveWidth*curveWidth)/2-curveWidth/2)
+        right_half(x=Nudge) 
+        monokiniChannel(lengthMM = sqrt(2*curveWidth*curveWidth), widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, nogrip=true);        
+
+/ *
+
+        //yflip()
+        right(curveWidth*1.5)
+        half_of(BACK+RIGHT)     
+        zrot(180)
+        front_half(y=Nudge) right_half(x=-Nudge)
+        monokiniChannelCurve(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height);
+
+        xflip_copy()
+        right(curveWidth)
+        half_of(BACK+RIGHT)     
+        zrot(180)
+        monokiniChannelCurve(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height);
+*/
+
+//}
 
 }
 
@@ -205,9 +283,9 @@ module monokiniGrip(widthMM = 26.4, heightMM = 22) {
     }
 }
 
-module monokiniChannel(lengthMM = 28, widthMM = 26.4, heightMM = 22, anchor, spin, orient, suppress = "") {
+module monokiniChannel(lengthMM = 28, widthMM = 26.4, heightMM = 22, anchor, spin, orient, nogrip=false, suppress="") {
     
-    // echo("Suppress: ", suppress);
+    
     // zrot(180) xrot(90) path_extrude( monokiniProfile()) square([2,channelWidth]); //path_extrude(path, shape, anchor=BOTTOM, orient=TOP, spin=0, size=[2,2], $fn=50)
     monokiniProfile = [
             [-1*widthMM/2, heightMM-baseHeight],
@@ -233,16 +311,16 @@ module monokiniChannel(lengthMM = 28, widthMM = 26.4, heightMM = 22, anchor, spi
     fwd(lengthMM/2) union() {
     back(lengthMM-Nudge/2) xrot(90) linear_extrude(height=lengthMM+Nudge) 
     polygon(off_Profile2);
-     if (lengthMM > gripSize)
+    if (lengthMM > gripSize && !nogrip)
         path_copies(pathChannel, spacing=Grid_Size) {
             right(Grid_Size/2)
             zrot(90) 
             down(22-heightMM) {
             // echo("Index: ", $idx, " Suppress: ", suppress[$idx]);
                 if (suppress[$idx] != "B" && suppress[$idx] != "L")
-                    monokiniGrip(widthMM = widthMM);
+                monokiniGrip(widthMM = widthMM);
                 if (suppress[$idx] != "B" && suppress[$idx] != "R")
-                    xflip() monokiniGrip(widthMM = widthMM);
+                xflip() monokiniGrip(widthMM = widthMM);
             }
         }
     } children();
@@ -288,7 +366,44 @@ module monokiniChannel(lengthMM = 28, widthMM = 26.4, heightMM = 22, anchor, spi
     //} 
  }
 
+module monokiniChannelPath(path, lengthMM = 28, widthMM = 26.4, heightMM = 22, anchor, spin, orient) {
+    
+    
+    // zrot(180) xrot(90) path_extrude( monokiniProfile()) square([2,channelWidth]); //path_extrude(path, shape, anchor=BOTTOM, orient=TOP, spin=0, size=[2,2], $fn=50)
+    monokiniProfile = [
+            [-1*widthMM/2, heightMM-baseHeight],
+            [-1*widthMM/2, topChamfer],
+            [-1*widthMM/2+topChamfer, 0],
+            [widthMM/2-topChamfer, 0],
+            [widthMM/2, topChamfer],
+            [widthMM/2, heightMM-baseHeight]
+        ];
+    // pathChannel = list_rotate(list_insert(list_insert(arc(90, r = widthMM/2, angle = [180,90], endpoint= true), 0, [-widthMM/2,-channelWidthSeparation-Nudge]), 0, [channelWidthSeparation+Nudge,widthMM/2]));
+    
+    roff_Profile = offset(monokiniProfile, delta=-snapWallThickness); //create the monokini profile
+    point1 = select(monokiniProfile, 0); //get the first point of the profile
+    point2 = select(roff_Profile, 0); //get the first point of the offset profile
+    point3 = select(roff_Profile, -1); //get the last point of the offset profile
+    roff_Profile2 = list_set(roff_Profile, 0, [point2[0], point1[1]]); //fix the first point to be the same as the original profile
+    roff_Profile3 = list_set(roff_Profile2, -1, [point3[0], point1[1]]); //fix the first point to be the same as the original profile
 
+    off_Profile2 = concat(monokiniProfile,reverse(roff_Profile3)); //reverse the order of the points to match the original profile
+
+    // stroke(off_Profile2);
+    //attachable(anchor, spin, orient, size=[widthMM, lengthMM, topHeight + (heightMM-12)]){
+    // fwd(lengthMM/2) 
+   
+    union() {
+    // back(lengthMM-Nudge/2) xrot(90) linear_extrude(height=lengthMM+Nudge) 
+    //move(v=[widthMM/2,-widthMM/2,0]) 
+ //   back_half(s = max(widthMM*2, heightMM*2), y=-Nudge) 
+ //   left_half(s = max(widthMM*2, heightMM*2), x=Nudge) 
+    path_extrude2d(path)
+    polygon(off_Profile2);
+ 
+    } children();
+    //} 
+ }
 //calculate the max x and y points. Useful in calculating size of an object when the path are all positive variables originating from [0,0]
 function maxX(path) = max([for (p = path) p[0]]) + abs(min([for (p = path) p[0]]));
 function maxY(path) = max([for (p = path) p[1]]) + abs(min([for (p = path) p[1]]));
