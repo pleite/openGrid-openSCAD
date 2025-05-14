@@ -169,22 +169,21 @@ module monokiniGrip(widthMM = 26.4, heightMM = 22) {
 
 
     gripPath = [[-1*widthMM/2,spacingFromChannel],[-1*widthMM/2,gripSize+spacingFromChannel]];
-    up(heightMM-baseHeight) difference() { 
+    up(heightMM-baseHeight) 
+    difference() {
         path_extrude2d( gripPath ) 
             polygon(monokiniProfileGrip); 
             //path_extrude(path, shape, anchor=BOTTOM, orient=TOP, spin=0, size=[2,2], $fn=50)
-            //color("red")
             up(baseHeight)
-            left(11.2)
+            left((widthMM/2)-snapWallThickness)
             back(chamferPosY) 
             zrot(-90)
             yrot(180) 
             xrot(90)
             linear_extrude(snapWallThickness) 
             right_triangle([baseHeight,baseHeight]);
-            //color("red")
             up(baseHeight)
-            left(13.2)
+            left(widthMM/2)
             back(chamferPosY2) 
             zrot(90)
             yrot(180) 

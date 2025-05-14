@@ -41,13 +41,9 @@ Channel_Width_in_Units = 1;  // Ensure this is an integer
 //Height (Z axis) including connector (in mm)
 Channel_Total_Height = 22; //[22:6:72]
 //Number of grids extending along the Y axis from the corner grid in units to the bottom (default unit is 28mm)
-X_Channel_Length_in_Units_Y_Axis_Bottom = 1;
+S_Channel_Length_in_Units_Y_Axis_Bottom = 1;
 //Number of grids extending along the Y axis from the corner grid in units to the top (default unit is 28mm)
-X_Channel_Length_in_Units_Y_Axis_Top = 1;
-//Number of grids extending along the X axis from the corner grid in units to the left (default unit is 28mm)
-X_Channel_Length_in_Units_X_Axis_Left = 1;
-//Number of grids extending along the X axis from the corner grid in units to the right (default unit is 28mm)
-X_Channel_Length_in_Units_X_Axis_Right = 1;
+S_Channel_Length_in_Units_Y_Axis_Top = 1;
 //Grid units to move over (X axis)
 Units_Over = 2; //[-10:1:10]
 //Grid units to move up (Y axis)
@@ -89,15 +85,58 @@ Global_Color = "SlateBlue";
 Suppress_Connectors = ""; // 
 
 /*[Hidden]*/
+
+// Base64 encoding and decoding in OpenSCAD
+
+// Define the base64 character set
+function base64_chars() = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// Encode a string to base64
+function base64_encode(str) =
+    let(
+        bytes = [for (i = [0:len(str)-1]) ord(str[i])],
+        padded_bytes = concat(bytes, [0, 0, 0]),
+        encoded = [
+            for (i = [0:3:len(bytes)-1])
+            let(
+                n = (padded_bytes[i] << 16) + (padded_bytes[i+1] << 8) + padded_bytes[i+2],
+                c1 = (n >> 18) & 63,
+                c2 = (n >> 12) & 63,
+                c3 = (n >> 6) & 63,
+                c4 = n & 63
+            )
+            each [c1, c2, c3, c4]
+        ]
+    )
+    [for (i = [0:len(encoded)-1]) base64_chars()[encoded[i]]];
+
+// Decode a base64 string
+function base64_decode(str) =
+    let(
+        bytes = [for (i = [0:len(str)-1]) search(str[i], base64_chars())[0]],
+        decoded = [
+            for (i = [0:4:len(bytes)-1])
+            let(
+                n = (bytes[i] << 18) + (bytes[i+1] << 12) + (bytes[i+2] << 6) + bytes[i+3],
+                c1 = (n >> 16) & 255,
+                c2 = (n >> 8) & 255,
+                c3 = n & 255
+            )
+            each [c1, c2, c3]
+        ]
+    )
+    [for (i = [0:len(decoded)-1]) chr(decoded[i])];
+
+
 //Units of measurement (in mm) for hole and length spacing. Multiboard is 25mm. Untested
 Grid_Size = 28;
 channelWidthSeparation = 0.8; //distance between the two channels in the monokini profile
 channelWidth = (Grid_Size-channelWidthSeparation*2) + (Channel_Width_in_Units-1) * Grid_Size;
 curveWidth = Channel_Width_in_Units * Grid_Size;
-lengthMM = X_Channel_Length_in_Units_Y_Axis_Bottom * Grid_Size;
-lengthMM2 = X_Channel_Length_in_Units_X_Axis_Right * Grid_Size;
-lengthMM3 = X_Channel_Length_in_Units_X_Axis_Left * Grid_Size;
-lengthMM4 = X_Channel_Length_in_Units_Y_Axis_Top * Grid_Size;
+lengthMM = S_Channel_Length_in_Units_Y_Axis_Bottom * Grid_Size;
+//lengthMM2 = X_Channel_Length_in_Units_X_Axis_Right * Grid_Size;
+//lengthMM3 = X_Channel_Length_in_Units_X_Axis_Left * Grid_Size;
+lengthMM2 = S_Channel_Length_in_Units_Y_Axis_Top * Grid_Size;
 baseHeight = 3.40;
 topHeight = 18.60;
 interlockOverlap = 3.40; //distance that the top and base overlap each other
@@ -118,15 +157,15 @@ Show_Attached = false;
 
 
 //BEGIN BEZ ATTEMPT
-dx = Units_Over * curveWidth;
-dy = Units_Up * curveWidth;
+dx = Units_Over * Grid_Size;
+dy = (Units_Up-1) * Grid_Size;
 
 //Approach 2
 bez = flatten([
-    bez_begin([0,-lengthMM-curveWidth/2], BACK, curveWidth),
-    bez_tang([0,0], BACK, curveWidth),
-    bez_tang([dx, dy], BACK, curveWidth),
-    bez_end([dx, dy+curveWidth], FWD, curveWidth)
+    bez_begin([0,-Grid_Size*2], BACK, Grid_Size),
+    bez_tang([0,-Grid_Size], BACK, Grid_Size),
+    bez_tang([dx, dy], BACK, Grid_Size),
+    bez_end([dx, dy+Grid_Size], FWD, Grid_Size)
 ]);
 
 t = bezpath_curve(bez);
@@ -134,7 +173,7 @@ t = bezpath_curve(bez);
 
 //module mw_plate_1 {
 union() {
-fwd(lengthMM/2+curveWidth/2)
+fwd(lengthMM/2+Grid_Size)
 diff() {
 color_this(Global_Color) 
   monokiniChannel(lengthMM = lengthMM, widthMM = channelWidth, heightMM = Channel_Total_Height, anchor = CENTER, orient = TOP, spin = 0, suppress = Suppress_List[0])
@@ -264,16 +303,15 @@ module monokiniGrip(widthMM = 26.4, heightMM = 22) {
             //path_extrude(path, shape, anchor=BOTTOM, orient=TOP, spin=0, size=[2,2], $fn=50)
             //color("red")
             up(baseHeight)
-            left(11.2)
+            left((widthMM/2)-snapWallThickness)
             back(chamferPosY) 
             zrot(-90)
             yrot(180) 
             xrot(90)
             linear_extrude(snapWallThickness) 
             right_triangle([baseHeight,baseHeight]);
-            //color("red")
             up(baseHeight)
-            left(13.2)
+            left(widthMM/2)
             back(chamferPosY2) 
             zrot(90)
             yrot(180) 
